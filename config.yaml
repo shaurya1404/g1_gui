@@ -1,0 +1,67 @@
+# G1 Control GUI Configuration — Deepak-System Lab PC
+# Edit paths / IPs here instead of touching Python code.
+
+network:
+  robot_ip: "192.168.123.164"
+  interface: "eno1"
+  usb_adapter: "enx6c1ff7b914d4"
+  img_server_ip: "192.168.123.164"
+  subnet: "192.168.123.0/24"
+
+environments:
+  groot:
+    activate: "source ~/Isaac-GR00T/.venv/bin/activate && conda deactivate"
+  tv:
+    activate: "source ~/miniconda3/etc/profile.d/conda.sh && conda activate tv"
+  inspire:
+    activate: "cd ~/Teleop_Simulator/inspire_hand_ws && source .venv/bin/activate"
+
+paths:
+  wbc_dir: "/home/deepak/Isaac-GR00T/external_dependencies/GR00T-WholeBodyControl"
+  teleop_dir: "/home/deepak/Teleop_Simulator/xr_teleoperate/teleop"
+  inspire_dir: "/home/deepak/Teleop_Simulator/inspire_hand_ws"
+  cyclonedds_setup: "source ~/unitree_ros2/cyclonedds_ws/install/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp"
+
+processes:
+  mixer:
+    name: "Mixer (lowcmd_middleware)"
+    env: "groot"
+    cwd_key: "wbc_dir"
+    command: "python lowcmd_middleware.py --network-interface {interface} --domain-id 0 --publish-rate 50"
+
+  wbc:
+    name: "Whole Body Control"
+    env: "groot"
+    cwd_key: "wbc_dir"
+    command: "python gr00t_wbc/control/main/teleop/run_g1_control_loop.py --interface {interface} --no-with_hands"
+    depends_on: ["mixer"]
+
+  hand_driver:
+    name: "Inspire Hand Driver"
+    env: "inspire"
+    cwd_key: "inspire_dir"
+    command: "python inspire_hand_sdk/example/Headless_driver_double.py"
+    depends_on: []
+
+  teleop:
+    name: "XR Teleoperation"
+    env: "tv"
+    cwd_key: "teleop_dir"
+    command: "python teleop_hand_and_arm.py --mixer --ee inspire_ftp --network-interface {interface} --img-server-ip {img_server_ip}"
+    depends_on: ["mixer", "hand_driver"]
+
+modes:
+  wbc_only:
+    label: "WBC Only (Locomotion)"
+    processes: ["mixer", "wbc"]
+    description: "Locomotion only — no hands or teleoperation."
+
+  teleop_only:
+    label: "Teleop Only (Arms + Hands)"
+    processes: ["hand_driver", "teleop"]
+    description: "XR teleoperation with hands — no locomotion."
+
+  full_stack:
+    label: "Full Stack (Locomotion + Teleop)"
+    processes: ["mixer", "wbc", "hand_driver", "teleop"]
+    description: "All systems — locomotion via WBC and arm/hand teleoperation."
