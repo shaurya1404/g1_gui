@@ -226,6 +226,49 @@ class ProcessCard(QGroupBox):
         btn_row.addStretch()
         layout.addLayout(btn_row)
 
+        # -- WBC keyboard controls (only for the wbc card)
+        if self.proc_key == "wbc":
+            ctrl_group = QGroupBox("Robot Controls")
+            ctrl_group.setStyleSheet("QGroupBox { font-size: 11px; margin-top: 10px; padding-top: 14px; }")
+            ctrl_layout = QVBoxLayout(ctrl_group)
+
+            row1 = QHBoxLayout()
+            wbc_buttons = [
+                ("]",  "Activate Policy",   "]"),
+                ("o",  "Deactivate Policy", "o"),
+                ("z",  "Stop Moving",       "z"),
+            ]
+            for label, tooltip, key in wbc_buttons:
+                btn = QPushButton(f"  {label}  —  {tooltip}")
+                btn.setToolTip(f"Sends '{key}' to WBC")
+                btn.setStyleSheet("font-size: 11px; padding: 4px 10px;")
+                btn.clicked.connect(lambda checked, k=key: self._managed.send_key(k))
+                row1.addWidget(btn)
+            ctrl_layout.addLayout(row1)
+
+            row2 = QHBoxLayout()
+            move_buttons = [
+                ("w", "Forward"),
+                ("s", "Backward"),
+                ("a", "Strafe L"),
+                ("d", "Strafe R"),
+                ("q", "Rotate L"),
+                ("e", "Rotate R"),
+                ("1", "Raise"),
+                ("2", "Lower"),
+            ]
+            for key, tooltip in move_buttons:
+                btn = QPushButton(f" {key} ")
+                btn.setToolTip(tooltip)
+                btn.setFixedWidth(42)
+                btn.setStyleSheet("font-size: 12px; font-weight: bold; padding: 4px;")
+                btn.clicked.connect(lambda checked, k=key: self._managed.send_key(k))
+                row2.addWidget(btn)
+            row2.addStretch()
+            ctrl_layout.addLayout(row2)
+
+            layout.addWidget(ctrl_group)
+
         # -- Terminal output
         self._terminal = QTextEdit()
         self._terminal.setReadOnly(True)
